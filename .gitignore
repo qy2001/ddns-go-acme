@@ -17,6 +17,7 @@ vendor/
 /doc/
 /web/dist/
 /web/ui/node_modules/
+/config.yaml
 
 # Architecture specific extensions/prefixes
 trace.out
