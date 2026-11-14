@@ -56,7 +56,7 @@ jobs:
           tar -czf "ddns-go-acme-${VERSION}-linux-amd64.tar.gz" ddns-go-acme
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ddns-go-acme-${{ env.VERSION }}-binaries
           path: |
