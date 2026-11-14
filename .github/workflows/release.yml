@@ -15,6 +15,9 @@ jobs:
   build:
     name: Build windows/linux amd64
     runs-on: ubuntu-latest
+    env:
+      # 标签构建时取标签名（如 v1.1.0），手动触发时为 dev
+      VERSION: ${{ github.ref_type == 'tag' && github.ref_name || 'dev' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,22 +44,21 @@ jobs:
         env:
           CGO_ENABLED: 0
         run: |
-          VERSION=${GITHUB_REF_NAME:-dev}
           LDFLAGS="-s -w -X main.version=${VERSION}"
           mkdir -p dist
-          GOOS=windows GOARCH=amd64 go build -ldflags "${LDFLAGS}" -trimpath -o dist/ddns-go-acme-windows-amd64.exe .
-          GOOS=linux   GOARCH=amd64 go build -ldflags "${LDFLAGS}" -trimpath -o dist/ddns-go-acme-linux-amd64 .
+          GOOS=windows GOARCH=amd64 go build -ldflags "${LDFLAGS}" -trimpath -o dist/ddns-go-acme.exe .
+          GOOS=linux   GOARCH=amd64 go build -ldflags "${LDFLAGS}" -trimpath -o dist/ddns-go-acme .
 
       - name: Package
         run: |
           cd dist
-          zip ddns-go-acme-windows-amd64.zip ddns-go-acme-windows-amd64.exe
-          tar -czf ddns-go-acme-linux-amd64.tar.gz ddns-go-acme-linux-amd64
+          zip "ddns-go-acme-${VERSION}-windows-amd64.zip" ddns-go-acme.exe
+          tar -czf "ddns-go-acme-${VERSION}-linux-amd64.tar.gz" ddns-go-acme
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ddns-go-acme-binaries
+          name: ddns-go-acme-${{ env.VERSION }}-binaries
           path: |
             dist/*.zip
             dist/*.tar.gz
@@ -68,5 +70,5 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            dist/ddns-go-acme-windows-amd64.zip
-            dist/ddns-go-acme-linux-amd64.tar.gz
+            dist/*.zip
+            dist/*.tar.gz

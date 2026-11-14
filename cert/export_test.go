@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/jeessy2/ddns-go/v6/config"
+	"github.com/pavlo-v-chernykh/keystore-go/v4"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
@@ -67,6 +68,59 @@ func TestExportAndStatus(t *testing.T) {
 	for _, want := range []string{"cert.pfx", "README.txt", certFileName} {
 		if !allNames[want] {
 			t.Fatalf("all zip missing %s, got %v", want, allNames)
+		}
+	}
+}
+
+func TestExportJKSAndSingle(t *testing.T) {
+	dir := t.TempDir()
+	c := config.CertConfig{Name: "test-cert", Domains: []string{"example.com"}, CertDir: dir}
+	writeTestCert(t, dir)
+
+	jksData, filename, err := ExportJKS(c, "secret")
+	if err != nil {
+		t.Fatalf("export jks: %v", err)
+	}
+	if filename != "test-cert.jks" {
+		t.Fatalf("unexpected filename: %s", filename)
+	}
+	ks := keystore.New()
+	if err := ks.Load(bytes.NewReader(jksData), []byte("secret")); err != nil {
+		t.Fatalf("load jks: %v", err)
+	}
+	entry, err := ks.GetPrivateKeyEntry(Name(c), []byte("secret"))
+	if err != nil {
+		t.Fatalf("get private key entry: %v", err)
+	}
+	if len(entry.CertificateChain) != 1 {
+		t.Fatalf("unexpected chain length: %d", len(entry.CertificateChain))
+	}
+	if _, err := x509.ParsePKCS8PrivateKey(entry.PrivateKey); err != nil {
+		t.Fatalf("parse jks private key: %v", err)
+	}
+
+	der, _, err := ExportSingle(c, "der")
+	if err != nil {
+		t.Fatalf("export der: %v", err)
+	}
+	leaf, err := x509.ParseCertificate(der)
+	if err != nil || leaf.Subject.CommonName != "example.com" {
+		t.Fatalf("unexpected der content: %v", err)
+	}
+
+	chain, _, err := ExportSingle(c, "chain")
+	if err != nil || len(chain) != 0 {
+		t.Fatalf("single-cert chain should be empty, got %d bytes, err=%v", len(chain), err)
+	}
+
+	allZip, _, err := ExportAll(c, "")
+	if err != nil {
+		t.Fatalf("export all: %v", err)
+	}
+	names := zipNames(t, allZip)
+	for _, want := range []string{"cert.pfx", "cert.jks", "cert.der", "chain.pem", "README.txt"} {
+		if !names[want] {
+			t.Fatalf("all zip missing %s, got %v", want, names)
 		}
 	}
 }

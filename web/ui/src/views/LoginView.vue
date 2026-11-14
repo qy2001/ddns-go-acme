@@ -1,25 +1,27 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api'
 
 const emit = defineEmits(['success'])
+const { t } = useI18n()
 
 const form = ref({ Username: '', Password: '' })
 const loading = ref(false)
 
 async function login() {
   if (!form.value.Username || !form.value.Password) {
-    ElMessage.warning('请输入用户名和密码')
+    ElMessage.warning(t('请输入用户名和密码'))
     return
   }
   loading.value = true
   try {
     const data = await api('/loginFunc', { method: 'POST', body: form.value })
     if (data && data.Code !== 200) {
-      throw new Error(data.Msg || '登录失败')
+      throw new Error(data.Msg || t('登录失败'))
     }
-    ElMessage.success('登录成功')
+    ElMessage.success(t('登录成功'))
     emit('success')
   } catch (e) {
     ElMessage.error(e.message)
@@ -36,29 +38,29 @@ async function login() {
         <div class="logo">D</div>
         <div>
           <h1>DDNS-GO-ACME</h1>
-          <p>动态域名解析与 SSL 证书管理</p>
+          <p>{{ $t('动态域名解析与 SSL 证书管理') }}</p>
         </div>
       </div>
 
       <el-form label-position="top" @submit.prevent="login">
-        <el-form-item label="用户名">
-          <el-input v-model="form.Username" size="large" placeholder="请输入用户名" autocomplete="username" />
+        <el-form-item :label="$t('用户名')">
+          <el-input v-model="form.Username" size="large" :placeholder="$t('请输入用户名')" autocomplete="username" />
         </el-form-item>
-        <el-form-item label="密码">
+        <el-form-item :label="$t('密码')">
           <el-input
             v-model="form.Password"
             size="large"
             type="password"
             show-password
-            placeholder="请输入密码"
+            :placeholder="$t('请输入密码')"
             autocomplete="current-password"
             @keyup.enter="login"
           />
         </el-form-item>
-        <el-button type="primary" size="large" style="width: 100%" :loading="loading" @click="login">登 录</el-button>
+        <el-button type="primary" size="large" style="width: 100%" :loading="loading" @click="login">{{ $t('登 录') }}</el-button>
       </el-form>
 
-      <p class="login-hint">首次使用请直接输入用户名和密码完成初始化，需在启动后 30 分钟内完成。</p>
+      <p class="login-hint">{{ $t('首次使用请直接输入用户名和密码完成初始化，需在启动后 30 分钟内完成。') }}</p>
     </div>
   </div>
 </template>

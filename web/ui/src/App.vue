@@ -5,12 +5,15 @@ import { ElMessage } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import en from 'element-plus/es/locale/lang/en'
 import { Document, SwitchButton } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { store, loadConfig } from './store'
+import { setLocale } from './i18n'
 import { api } from './api'
 import LoginView from './views/LoginView.vue'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 
 const logsVisible = ref(false)
 const logs = ref([])
@@ -19,6 +22,11 @@ let logTimer = null
 
 const locale = computed(() => (store.lang === 'en' ? en : zhCn))
 const version = computed(() => store.config?.Version || 'DEV')
+const pageTitle = computed(() => {
+  if (route.path === '/certs') return t('SSL 证书')
+  if (route.path === '/settings') return t('系统设置')
+  return t('DNS 解析')
+})
 
 onMounted(async () => {
   try {
@@ -73,7 +81,8 @@ async function changeLang(lang) {
     await api('/setLang', { method: 'POST', body: { Lang: lang } })
     store.lang = lang
     store.config.Lang = lang
-    ElMessage.success(lang === 'en' ? 'Language switched' : '语言已切换')
+    setLocale(lang)
+    ElMessage.success(t('语言已切换'))
   } catch (e) {
     ElMessage.error(e.message)
   }
@@ -107,32 +116,29 @@ async function logout() {
         <el-menu :default-active="route.path" router class="nav-menu">
           <el-menu-item index="/dns">
             <el-icon><Connection /></el-icon>
-            <span>DNS 解析</span>
+            <span>{{ $t('DNS 解析') }}</span>
           </el-menu-item>
           <el-menu-item index="/certs">
             <el-icon><Lock /></el-icon>
-            <span>SSL 证书</span>
+            <span>{{ $t('SSL 证书') }}</span>
           </el-menu-item>
           <el-menu-item index="/settings">
             <el-icon><Setting /></el-icon>
-            <span>系统设置</span>
+            <span>{{ $t('系统设置') }}</span>
           </el-menu-item>
         </el-menu>
-
-        <div class="aside-footer">
-          <el-select :model-value="store.lang" size="small" style="width: 100%" @change="changeLang">
-            <el-option label="简体中文" value="zh" />
-            <el-option label="English" value="en" />
-          </el-select>
-        </div>
       </el-aside>
 
       <el-container>
         <el-header class="header">
-          <div class="header-title">{{ route.path === '/certs' ? 'SSL 证书' : route.path === '/settings' ? '系统设置' : 'DNS 解析' }}</div>
+          <div class="header-title">{{ pageTitle }}</div>
           <div class="header-actions">
-            <el-button text :icon="Document" @click="openLogs">日志</el-button>
-            <el-button text :icon="SwitchButton" @click="logout">退出</el-button>
+            <el-button text :icon="Document" @click="openLogs">{{ $t('日志') }}</el-button>
+            <el-select :model-value="store.lang" size="small" style="width: 112px" @change="changeLang">
+              <el-option label="简体中文" value="zh" />
+              <el-option label="English" value="en" />
+            </el-select>
+            <el-button text :icon="SwitchButton" @click="logout">{{ $t('退出') }}</el-button>
           </div>
         </el-header>
 
@@ -142,11 +148,11 @@ async function logout() {
       </el-container>
     </el-container>
 
-    <el-drawer v-model="logsVisible" title="运行日志" size="560px" @close="closeLogs">
+    <el-drawer v-model="logsVisible" :title="$t('运行日志')" size="560px" @close="closeLogs">
       <div style="margin-bottom: 12px">
-        <el-button size="small" :loading="clearing" @click="clearLogs">清空日志</el-button>
+        <el-button size="small" :loading="clearing" @click="clearLogs">{{ $t('清空日志') }}</el-button>
       </div>
-      <div class="log-view">{{ logs.join('') || '暂无日志' }}</div>
+      <div class="log-view">{{ logs.join('') || $t('暂无日志') }}</div>
     </el-drawer>
   </el-config-provider>
 </template>

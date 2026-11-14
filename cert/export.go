@@ -11,8 +11,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/jeessy2/ddns-go/v6/config"
+	"github.com/pavlo-v-chernykh/keystore-go/v4"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
@@ -22,7 +24,10 @@ const readmeContent = `ddns-go 证书使用说明
   fullchain.pem  证书链（服务器证书 + 中间证书），Nginx/Apache 使用
   privkey.pem    私钥
   cert.pem       服务器证书（不含中间证书）
+  chain.pem      中间证书链（不含服务器证书），Apache SSLCertificateChainFile 使用
+  cert.der       DER 二进制编码的服务器证书
   cert.pfx       PKCS#12 格式，Windows/IIS 导入使用
+  cert.jks       Java KeyStore，Tomcat 等 Java 应用使用（无密码时默认 changeit）
 
 Nginx:
   ssl_certificate     /path/to/fullchain.pem;
@@ -69,6 +74,14 @@ func ExportAll(c config.CertConfig, password string) ([]byte, string, error) {
 		return nil, "", err
 	}
 	files = append(files, zipFile{Name: "cert.pfx", Data: pfx})
+	contents, _ := PEMContents(c)
+	files = append(files, zipFile{Name: "chain.pem", Data: []byte(contents["chain"])})
+	if jks, jerr := buildJKS(c, password); jerr == nil {
+		files = append(files, zipFile{Name: "cert.jks", Data: jks})
+	}
+	if der, derr := leafDER(c); derr == nil {
+		files = append(files, zipFile{Name: "cert.der", Data: der})
+	}
 	files = append(files, zipFile{Name: "README.txt", Data: []byte(readmeContent)})
 
 	buf, err := zipFiles(files)
@@ -190,4 +203,97 @@ func zipFiles(files []zipFile) ([]byte, error) {
 type zipFile struct {
 	Name string
 	Data []byte
+}
+
+// ExportSingle 导出单个文件：fullchain / privkey / cert / chain（PEM）或 der（二进制服务器证书）
+func ExportSingle(c config.CertConfig, kind string) ([]byte, string, error) {
+	base := SafeName(Name(c))
+	if kind == "der" {
+		der, err := leafDER(c)
+		return der, base + ".der", err
+	}
+	if kind == "chain" {
+		fullChain, err := os.ReadFile(filepath.Join(Dir(c), fullChainFileName))
+		if err != nil {
+			return nil, "", fmt.Errorf("读取证书失败: %w", err)
+		}
+		return []byte(chainFromFullChain(string(fullChain))), base + "-chain.pem", nil
+	}
+	fileName, ok := map[string]string{
+		"fullchain": fullChainFileName,
+		"privkey":   privateKeyFileName,
+		"cert":      certFileName,
+	}[kind]
+	if !ok {
+		return nil, "", errors.New("不支持的文件类型")
+	}
+	data, err := os.ReadFile(filepath.Join(Dir(c), fileName))
+	if err != nil {
+		return nil, "", fmt.Errorf("读取 %s 失败: %w", fileName, err)
+	}
+	return data, base + "-" + kind + ".pem", nil
+}
+
+// ExportJKS 导出 Java KeyStore（Tomcat 等 Java 应用）
+func ExportJKS(c config.CertConfig, password string) ([]byte, string, error) {
+	jks, err := buildJKS(c, password)
+	if err != nil {
+		return nil, "", err
+	}
+	return jks, SafeName(Name(c)) + ".jks", nil
+}
+
+// leafDER 返回 DER 二进制编码的服务器证书
+func leafDER(c config.CertConfig) ([]byte, error) {
+	fullChain, err := os.ReadFile(filepath.Join(Dir(c), fullChainFileName))
+	if err != nil {
+		return nil, fmt.Errorf("读取证书失败: %w", err)
+	}
+	block, _ := pem.Decode(fullChain)
+	if block == nil {
+		return nil, errors.New("证书内容为空")
+	}
+	return block.Bytes, nil
+}
+
+// buildJKS 生成 JKS，密码为空时使用 Java 默认密码 changeit
+func buildJKS(c config.CertConfig, password string) ([]byte, error) {
+	if password == "" {
+		password = "changeit"
+	}
+	dir := Dir(c)
+	fullChain, err := os.ReadFile(filepath.Join(dir, fullChainFileName))
+	if err != nil {
+		return nil, fmt.Errorf("读取证书失败: %w", err)
+	}
+	privateKey, err := os.ReadFile(filepath.Join(dir, privateKeyFileName))
+	if err != nil {
+		return nil, fmt.Errorf("读取私钥失败: %w", err)
+	}
+	pair, err := tls.X509KeyPair(fullChain, privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("证书与私钥不匹配: %w", err)
+	}
+	pkcs8Key, err := x509.MarshalPKCS8PrivateKey(pair.PrivateKey)
+	if err != nil {
+		return nil, err
+	}
+	chain := make([]keystore.Certificate, 0, len(pair.Certificate))
+	for _, der := range pair.Certificate {
+		chain = append(chain, keystore.Certificate{Type: "X509", Content: der})
+	}
+	ks := keystore.New()
+	entry := keystore.PrivateKeyEntry{
+		CreationTime:     time.Now(),
+		PrivateKey:       pkcs8Key,
+		CertificateChain: chain,
+	}
+	if err := ks.SetPrivateKeyEntry(Name(c), entry, []byte(password)); err != nil {
+		return nil, fmt.Errorf("生成 JKS 失败: %w", err)
+	}
+	var buf bytes.Buffer
+	if err := ks.Store(&buf, []byte(password)); err != nil {
+		return nil, fmt.Errorf("生成 JKS 失败: %w", err)
+	}
+	return buf.Bytes(), nil
 }

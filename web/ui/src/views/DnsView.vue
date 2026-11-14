@@ -1,9 +1,11 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { store, saveConfig } from '../store'
 import providers from '../data/providers'
 
+const { t } = useI18n()
 const selected = ref(0)
 const saving = ref(false)
 
@@ -28,7 +30,7 @@ function providerLabel(key) {
 
 function addConf() {
   store.config.DnsConf.push({
-    Name: '新配置',
+    Name: t('新配置'),
     DnsName: 'alidns',
     DnsID: '',
     DnsSecret: '',
@@ -54,7 +56,7 @@ function addConf() {
 
 async function removeConf(index) {
   try {
-    await ElMessageBox.confirm('确定删除该 DNS 配置吗？保存后生效。', '删除配置', { type: 'warning' })
+    await ElMessageBox.confirm(t('确定删除该 DNS 配置吗？保存后生效。'), t('删除配置'), { type: 'warning' })
   } catch {
     return
   }
@@ -68,7 +70,7 @@ async function save() {
   saving.value = true
   try {
     await saveConfig()
-    ElMessage.success('保存成功，已触发一次解析更新')
+    ElMessage.success(t('保存成功，已触发一次解析更新'))
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
@@ -81,17 +83,17 @@ async function save() {
   <div class="page">
     <div class="page-header">
       <div>
-        <h2 class="page-title">DNS 解析</h2>
-        <p class="page-desc">配置公网 IP 获取方式与域名解析服务商，保存后立即执行一次更新。</p>
+        <h2 class="page-title">{{ $t('DNS 解析') }}</h2>
+        <p class="page-desc">{{ $t('配置公网 IP 获取方式与域名解析服务商，保存后立即执行一次更新。') }}</p>
       </div>
       <div>
-        <el-button @click="addConf">新增配置</el-button>
-        <el-button type="primary" :loading="saving" @click="save">保存配置</el-button>
+        <el-button @click="addConf">{{ $t('新增配置') }}</el-button>
+        <el-button type="primary" :loading="saving" @click="save">{{ $t('保存配置') }}</el-button>
       </div>
     </div>
 
-    <el-empty v-if="!dnsConf.length" description="暂无 DNS 配置">
-      <el-button type="primary" @click="addConf">新增配置</el-button>
+    <el-empty v-if="!dnsConf.length" :description="$t('暂无 DNS 配置')">
+      <el-button type="primary" @click="addConf">{{ $t('新增配置') }}</el-button>
     </el-empty>
 
     <div v-else class="dns-layout">
@@ -104,22 +106,22 @@ async function save() {
           @click="selected = i"
         >
           <div class="conf-main">
-            <div class="conf-name">{{ c.Name || '未命名配置' }}</div>
+            <div class="conf-name">{{ c.Name || $t('未命名配置') }}</div>
             <div class="conf-sub">{{ providerLabel(c.DnsName) }}</div>
           </div>
-          <el-button text type="danger" size="small" @click.stop="removeConf(i)">删除</el-button>
+          <el-button text type="danger" size="small" @click.stop="removeConf(i)">{{ $t('删除') }}</el-button>
         </div>
       </el-card>
 
       <div v-if="current" class="conf-form">
         <el-card class="card" shadow="never">
-          <template #header><b>服务商</b></template>
+          <template #header><b>{{ $t('服务商') }}</b></template>
           <el-form label-position="top" class="form-grid">
-            <el-form-item label="配置名称">
-              <el-input v-model="current.Name" placeholder="例如：家庭宽带" />
+            <el-form-item :label="$t('配置名称')">
+              <el-input v-model="current.Name" :placeholder="$t('例如：家庭宽带')" />
             </el-form-item>
 
-            <el-form-item label="DNS 服务商">
+            <el-form-item :label="$t('DNS 服务商')">
               <el-select v-model="current.DnsName" filterable style="width: 100%">
                 <el-option v-for="opt in providerOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
@@ -137,16 +139,16 @@ async function save() {
               <el-input v-model="current.DnsSecret" type="password" show-password :placeholder="secretLabel" />
             </el-form-item>
 
-            <el-form-item label="扩展参数（可选）">
-              <el-input v-model="current.DnsExtParam" placeholder="部分服务商需要，例如团队 ID" />
+            <el-form-item :label="$t('扩展参数（可选）')">
+              <el-input v-model="current.DnsExtParam" :placeholder="$t('部分服务商需要，例如团队 ID')" />
             </el-form-item>
 
-            <el-form-item label="TTL（秒）">
+            <el-form-item :label="$t('TTL（秒）')">
               <el-input v-model="current.TTL" placeholder="600" />
             </el-form-item>
 
-            <el-form-item label="请求网卡（可选）">
-              <el-select v-model="current.HttpInterface" clearable filterable allow-create style="width: 100%" placeholder="默认网卡">
+            <el-form-item :label="$t('请求网卡（可选）')">
+              <el-select v-model="current.HttpInterface" clearable filterable allow-create style="width: 100%" :placeholder="$t('默认网卡')">
                 <el-option v-for="name in ifaceNames" :key="name" :label="name" :value="name" />
               </el-select>
             </el-form-item>
@@ -157,35 +159,35 @@ async function save() {
           <template #header>
             <div class="section-head">
               <b>IPv4</b>
-              <el-switch v-model="current.Ipv4Enable" active-text="启用" />
+              <el-switch v-model="current.Ipv4Enable" :active-text="$t('启用')" />
             </div>
           </template>
           <el-form label-position="top" class="form-grid">
-            <el-form-item label="获取方式">
+            <el-form-item :label="$t('获取方式')">
               <el-radio-group v-model="current.Ipv4GetType">
-                <el-radio-button value="url">接口获取</el-radio-button>
-                <el-radio-button value="netInterface">网卡获取</el-radio-button>
-                <el-radio-button value="cmd">命令获取</el-radio-button>
+                <el-radio-button value="url">{{ $t('接口获取') }}</el-radio-button>
+                <el-radio-button value="netInterface">{{ $t('网卡获取') }}</el-radio-button>
+                <el-radio-button value="cmd">{{ $t('命令获取') }}</el-radio-button>
               </el-radio-group>
             </el-form-item>
 
-            <el-form-item v-if="current.Ipv4GetType === 'url'" label="IP 接口（多个用英文逗号分隔）">
+            <el-form-item v-if="current.Ipv4GetType === 'url'" :label="$t('IP 接口（多个用英文逗号分隔）')">
               <el-input v-model="current.Ipv4Url" placeholder="https://myip4.ipip.net" />
             </el-form-item>
 
-            <el-form-item v-else-if="current.Ipv4GetType === 'netInterface'" label="网卡">
-              <el-select v-model="current.Ipv4NetInterface" clearable filterable style="width: 100%" placeholder="选择网卡">
+            <el-form-item v-else-if="current.Ipv4GetType === 'netInterface'" :label="$t('网卡')">
+              <el-select v-model="current.Ipv4NetInterface" clearable filterable style="width: 100%" :placeholder="$t('选择网卡')">
                 <el-option v-for="name in ifaceNames" :key="name" :label="name" :value="name" />
               </el-select>
             </el-form-item>
 
-            <el-form-item v-else label="命令">
-              <el-input v-model="current.Ipv4Cmd" placeholder="执行命令获取 IP" />
+            <el-form-item v-else :label="$t('命令')">
+              <el-input v-model="current.Ipv4Cmd" :placeholder="$t('执行命令获取 IP')" />
             </el-form-item>
 
-            <el-form-item class="full" label="域名（每行一个）">
+            <el-form-item class="full" :label="$t('域名（每行一个）')">
               <el-input v-model="current.Ipv4Domains" type="textarea" :rows="4" placeholder="www.example.com&#10;sub:example.com" />
-              <div class="hint">支持自动拆分根域名，也可用 子域名:根域名 指定；Cloudflare 等可追加 ?参数。</div>
+              <div class="hint">{{ $t('支持自动拆分根域名，也可用 子域名:根域名 指定；Cloudflare 等可追加 ?参数。') }}</div>
             </el-form-item>
           </el-form>
         </el-card>
@@ -194,37 +196,37 @@ async function save() {
           <template #header>
             <div class="section-head">
               <b>IPv6</b>
-              <el-switch v-model="current.Ipv6Enable" active-text="启用" />
+              <el-switch v-model="current.Ipv6Enable" :active-text="$t('启用')" />
             </div>
           </template>
           <el-form label-position="top" class="form-grid">
-            <el-form-item label="获取方式">
+            <el-form-item :label="$t('获取方式')">
               <el-radio-group v-model="current.Ipv6GetType">
-                <el-radio-button value="url">接口获取</el-radio-button>
-                <el-radio-button value="netInterface">网卡获取</el-radio-button>
-                <el-radio-button value="cmd">命令获取</el-radio-button>
+                <el-radio-button value="url">{{ $t('接口获取') }}</el-radio-button>
+                <el-radio-button value="netInterface">{{ $t('网卡获取') }}</el-radio-button>
+                <el-radio-button value="cmd">{{ $t('命令获取') }}</el-radio-button>
               </el-radio-group>
             </el-form-item>
 
-            <el-form-item v-if="current.Ipv6GetType === 'url'" label="IP 接口（多个用英文逗号分隔）">
+            <el-form-item v-if="current.Ipv6GetType === 'url'" :label="$t('IP 接口（多个用英文逗号分隔）')">
               <el-input v-model="current.Ipv6Url" placeholder="https://myip6.ipip.net" />
             </el-form-item>
 
-            <el-form-item v-else-if="current.Ipv6GetType === 'netInterface'" label="网卡">
-              <el-select v-model="current.Ipv6NetInterface" clearable filterable style="width: 100%" placeholder="选择网卡">
+            <el-form-item v-else-if="current.Ipv6GetType === 'netInterface'" :label="$t('网卡')">
+              <el-select v-model="current.Ipv6NetInterface" clearable filterable style="width: 100%" :placeholder="$t('选择网卡')">
                 <el-option v-for="name in ifaceNames" :key="name" :label="name" :value="name" />
               </el-select>
             </el-form-item>
 
-            <el-form-item v-else label="命令">
-              <el-input v-model="current.Ipv6Cmd" placeholder="执行命令获取 IP" />
+            <el-form-item v-else :label="$t('命令')">
+              <el-input v-model="current.Ipv6Cmd" :placeholder="$t('执行命令获取 IP')" />
             </el-form-item>
 
-            <el-form-item label="地址正则（可选）">
-              <el-input v-model="current.Ipv6Reg" placeholder="用于从网卡多地址中筛选" />
+            <el-form-item :label="$t('地址正则（可选）')">
+              <el-input v-model="current.Ipv6Reg" :placeholder="$t('用于从网卡多地址中筛选')" />
             </el-form-item>
 
-            <el-form-item class="full" label="域名（每行一个）">
+            <el-form-item class="full" :label="$t('域名（每行一个）')">
               <el-input v-model="current.Ipv6Domains" type="textarea" :rows="4" placeholder="www.example.com" />
             </el-form-item>
           </el-form>

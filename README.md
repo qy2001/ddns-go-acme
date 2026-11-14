@@ -11,7 +11,7 @@
 | ACME 证书申请 | 基于 [go-acme/lego](https://github.com/go-acme/lego)，DNS-01 验证，支持泛域名 |
 | 自动续期 | 后台每 6 小时检查一次，默认到期前 30 天自动续期（可调） |
 | DNS-01 服务商 | Cloudflare、DNSPod、腾讯云（复用 DDNS 配置中的 API 密钥） |
-| 证书导出 | PEM（Nginx/Apache）、PFX/PKCS12（IIS/Windows，可设密码）、全格式 ZIP |
+| 证书导出 | PEM（Nginx/Apache）、PFX/PKCS12（IIS/Windows，可设密码）、JKS（Java/Tomcat）、DER、PEM 单文件、全格式 ZIP |
 | 按服务器部署 | Nginx / Apache / HAProxy / Caddy / IIS / Tomcat 等类型，一键生成终端写文件命令（文本直写或 Base64），或在线查看/复制证书内容 |
 | 全新 Web 界面 | Vue3 + Element Plus + Vite，构建产物通过 `go:embed` 打入单文件二进制 |
 
@@ -70,9 +70,11 @@ sudo ./ddns-go-acme -s install
 3. 保存后自动异步申请，列表实时展示状态、到期时间与剩余天数。
 4. 证书文件保存在配置目录下的 `.ddns_go_certs/`（`fullchain.pem`、`privkey.pem`、`cert.pem`）。
 5. 「下载」菜单支持：
-   - 直接下载 PEM / PFX / ZIP；
+   - 直接下载 PEM / PFX / JKS / DER / ZIP 或单个 PEM 文件；
    - **终端部署命令**：选择服务器类型与终端类型（Linux bash / PowerShell / CMD），生成在当前目录写文件的命令，附对应服务器配置参考；
    - **查看证书内容**：按文件在线查看并复制 PEM 原文。
+
+界面支持中英双语，可在顶栏「日志」按钮旁切换语言，Element Plus 组件语言同步切换。
 
 ## 技术栈与构建
 

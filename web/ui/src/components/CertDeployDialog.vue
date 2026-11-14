@@ -1,9 +1,11 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api'
 import { SERVER_TYPES, isPfxServer, filesFor, fileText, buildCommands } from '../cert/deploy'
 
+const { t } = useI18n()
 const props = defineProps({
   visible: Boolean,
   name: String,
@@ -96,74 +98,72 @@ const commands = computed(() => buildCommands({
 async function copy(text) {
   try {
     await navigator.clipboard.writeText(text)
-    ElMessage.success('已复制')
+    ElMessage.success(t('已复制'))
   } catch {
-    ElMessage.warning('复制失败，请手动全选文本复制')
+    ElMessage.warning(t('复制失败，请手动全选文本复制'))
   }
 }
 </script>
 
 <template>
-  <el-dialog v-model="dialogVisible" title="部署证书" width="840px">
+  <el-dialog v-model="dialogVisible" :title="$t('部署证书')" width="840px">
     <div v-loading="loading">
       <el-form label-position="top">
         <div class="form-grid">
-          <el-form-item label="服务器类型" required>
+          <el-form-item :label="$t('服务器类型')" required>
             <el-select v-model="server" style="width: 100%" @change="onServerChange">
-              <el-option v-for="s in SERVER_TYPES" :key="s.value" :label="s.label" :value="s.value" />
+              <el-option v-for="s in SERVER_TYPES" :key="s.value" :label="$t(s.label)" :value="s.value" />
             </el-select>
           </el-form-item>
 
           <template v-if="tab === 'cmd'">
-            <el-form-item label="目标终端">
+            <el-form-item :label="$t('目标终端')">
               <el-radio-group v-model="os">
                 <el-radio-button value="linux">Linux（bash/sh）</el-radio-button>
                 <el-radio-button value="powershell">PowerShell</el-radio-button>
                 <el-radio-button value="cmd">CMD</el-radio-button>
               </el-radio-group>
             </el-form-item>
-            <el-form-item label="写入方式">
+            <el-form-item :label="$t('写入方式')">
               <el-radio-group v-model="writeMode">
-                <el-radio-button value="text" :disabled="pfxServer">文本直写</el-radio-button>
-                <el-radio-button value="base64">Base64 解码</el-radio-button>
+                <el-radio-button value="text" :disabled="pfxServer">{{ $t('文本直写') }}</el-radio-button>
+                <el-radio-button value="base64">Base64 {{ $t('解码') }}</el-radio-button>
               </el-radio-group>
             </el-form-item>
           </template>
 
-          <el-form-item v-if="pfxServer" label="PFX 密码（可留空）">
+          <el-form-item v-if="pfxServer" :label="$t('PFX 密码（可留空）')">
             <el-input
               v-model="pfxPassword"
               type="password"
               show-password
-              placeholder="修改后失焦自动重新生成"
+              :placeholder="$t('修改后失焦自动重新生成')"
               @change="loadPfx"
             />
           </el-form-item>
 
-          <el-form-item v-for="f in files" :key="f.key" :label="f.label + '文件名'">
+          <el-form-item v-for="f in files" :key="f.key" :label="$t(f.label) + $t('文件名')">
             <el-input v-model="f.name" />
           </el-form-item>
         </div>
       </el-form>
 
       <el-tabs v-model="tab">
-        <el-tab-pane label="终端命令" name="cmd">
+        <el-tab-pane :label="$t('终端命令')" name="cmd">
           <el-input
             :model-value="commands"
             type="textarea"
             :rows="16"
             readonly
             class="terminal-output"
-            placeholder="正在获取证书内容..."
+            :placeholder="$t('正在获取证书内容...')"
           />
-          <div class="hint" style="margin-top: 8px">
-            复制后在目标服务器终端的<strong>当前目录</strong>粘贴执行。文本直写保留 PEM 原文；Base64 解码适合任意内容，PFX 二进制仅支持 Base64。私钥内容敏感，请勿外传。
-          </div>
+          <div class="hint" style="margin-top: 8px" v-html="$t('复制后在目标服务器终端的<strong>当前目录</strong>粘贴执行。文本直写保留 PEM 原文；Base64 解码适合任意内容，PFX 二进制仅支持 Base64。私钥内容敏感，请勿外传。')"></div>
         </el-tab-pane>
 
-        <el-tab-pane label="证书内容" name="content">
+        <el-tab-pane :label="$t('证书内容')" name="content">
           <el-tabs v-model="activeFile">
-            <el-tab-pane v-for="f in files" :key="f.key" :label="f.label" :name="f.key">
+            <el-tab-pane v-for="f in files" :key="f.key" :label="$t(f.label)" :name="f.key">
               <el-input
                 :model-value="fileText(f, contents)"
                 type="textarea"
@@ -172,7 +172,7 @@ async function copy(text) {
                 class="terminal-output"
               />
               <div style="margin-top: 8px; text-align: right">
-                <el-button size="small" @click="copy(fileText(f, contents))">复制{{ f.label }}</el-button>
+                <el-button size="small" @click="copy(fileText(f, contents))">{{ $t('复制') }}{{ $t(f.label) }}</el-button>
               </div>
             </el-tab-pane>
           </el-tabs>
@@ -181,8 +181,8 @@ async function copy(text) {
     </div>
 
     <template #footer>
-      <el-button @click="dialogVisible = false">关闭</el-button>
-      <el-button v-if="tab === 'cmd'" type="primary" :disabled="!commands" @click="copy(commands)">复制命令</el-button>
+      <el-button @click="dialogVisible = false">{{ $t('关闭') }}</el-button>
+      <el-button v-if="tab === 'cmd'" type="primary" :disabled="!commands" @click="copy(commands)">{{ $t('复制命令') }}</el-button>
     </template>
   </el-dialog>
 </template>

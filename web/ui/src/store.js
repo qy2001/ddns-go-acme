@@ -1,4 +1,5 @@
 import { reactive } from 'vue'
+import { i18n, setLocale } from './i18n'
 
 export const store = reactive({
   ready: false,
@@ -16,13 +17,14 @@ export async function loadConfig() {
     return false
   }
   if (!res.ok) {
-    throw new Error('加载配置失败')
+    throw new Error(i18n.global.t('加载配置失败'))
   }
   const data = await res.json()
   data.DnsConf = data.DnsConf || []
   data.CertConf = data.CertConf || []
   store.config = data
   store.lang = data.Lang || 'zh'
+  setLocale(store.lang)
   store.authenticated = true
   store.ready = true
   return true
@@ -31,7 +33,7 @@ export async function loadConfig() {
 // saveConfig 保存全部配置，password 为空表示不修改密码
 export async function saveConfig(password = '') {
   const c = store.config
-  if (!c) throw new Error('配置尚未加载')
+  if (!c) throw new Error(i18n.global.t('配置尚未加载'))
   const payload = {
     Username: c.Username,
     Password: password,
@@ -49,9 +51,9 @@ export async function saveConfig(password = '') {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
-  const data = await res.json().catch(() => ({ result: '保存失败' }))
+  const data = await res.json().catch(() => ({ result: i18n.global.t('保存失败') }))
   if (data.result !== 'ok') {
-    throw new Error(data.result || '保存失败')
+    throw new Error(data.result || i18n.global.t('保存失败'))
   }
   await loadConfig()
 }

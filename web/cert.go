@@ -109,6 +109,10 @@ func CertDownload(w http.ResponseWriter, r *http.Request) {
 		data, filename, err = cert.ExportPFX(*target, password)
 	case "zip":
 		data, filename, err = cert.ExportAll(*target, password)
+	case "jks":
+		data, filename, err = cert.ExportJKS(*target, password)
+	case "der", "fullchain", "privkey", "cert", "chain":
+		data, filename, err = cert.ExportSingle(*target, format)
 	default:
 		writeJSON(w, http.StatusBadRequest, map[string]string{"result": "不支持的导出格式"})
 		return
@@ -118,9 +122,14 @@ func CertDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contentType := "application/zip"
-	if format == "pfx" {
-		contentType = "application/x-pkcs12"
+	contentType := map[string]string{
+		"zip": "application/zip",
+		"pfx": "application/x-pkcs12",
+		"jks": "application/x-java-keystore",
+		"der": "application/pkix-cert",
+	}[format]
+	if contentType == "" {
+		contentType = "application/x-pem-file"
 	}
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
