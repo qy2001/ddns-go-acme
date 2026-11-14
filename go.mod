@@ -12,7 +12,7 @@ require (
 
 require (
 	github.com/go-acme/lego/v4 v4.35.2
-	golang.org/x/sys v0.49.0
+	golang.org/x/sys v0.50.0
 	golang.org/x/text v0.43.0
 	software.sslmate.com/src/go-pkcs12 v0.7.4
 )
