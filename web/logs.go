@@ -35,6 +35,7 @@ func init() {
 func Logs(writer http.ResponseWriter, request *http.Request) {
 	// mlogs.Logs数组转为json
 	logs, _ := json.Marshal(mlogs.Logs)
+	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	writer.Write(logs)
 }
 

@@ -66,10 +66,37 @@ type DNS struct {
 	ExtParam string
 }
 
+// DefaultCertRenewBefore 证书默认提前续期天数
+const DefaultCertRenewBefore = 30
+
+// CertConfig SSL 证书申请配置
+type CertConfig struct {
+	// Enable 是否启用自动申请/续期
+	Enable bool
+	// Name 配置名称，需唯一
+	Name string
+	// Domains 证书域名，支持泛域名如 *.example.com
+	Domains []string
+	// Email ACME 账号邮箱
+	Email string
+	// CA 证书颁发机构：letsencrypt | letsencrypt-staging
+	CA string
+	// DNSProvider 使用哪个 DnsConf 的 DNS 服务商凭证完成 DNS-01 验证
+	DNSProvider int
+	// KeyType 私钥类型：ec256 | ec384 | rsa2048 | rsa4096
+	KeyType string
+	// CertDir 证书保存目录，为空则使用默认目录
+	CertDir string
+	// RenewBefore 提前续期天数
+	RenewBefore int
+}
+
 type Config struct {
 	DnsConf []DnsConfig
 	User
 	Webhook
+	// 证书申请配置
+	CertConf []CertConfig
 	// 禁止公网访问
 	NotAllowWanAccess bool
 	// 语言

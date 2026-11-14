@@ -14,6 +14,9 @@ tmp
 /.idea/
 vendor/
 /dist
+/doc/
+/web/dist/
+/web/ui/node_modules/
 
 # Architecture specific extensions/prefixes
 trace.out

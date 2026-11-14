@@ -1,9 +1,9 @@
-.PHONY: build clean test test-race
+.PHONY: build ui-build ui-dev clean test test-race
 
 # 如果找不到 tag 则使用 HEAD commit
 VERSION=$(shell git describe --tags `git rev-list --tags --max-count=1` 2>/dev/null || git rev-parse --short HEAD)
 BUILD_TIME=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-BIN=ddns-go
+BIN=ddns-go-acme
 DIR_SRC=.
 DOCKER_ENV=DOCKER_BUILDKIT=1
 DOCKER=$(DOCKER_ENV) docker
@@ -14,7 +14,17 @@ GO=$(GO_ENV) $(shell which go)
 GOROOT=$(shell `which go` env GOROOT)
 GOPATH=$(shell `which go` env GOPATH)
 
-build: $(DIR_SRC)/main.go
+UI_DIR=web/ui
+
+# 构建前端产物（web/dist），go:embed 依赖该目录
+ui-build:
+	@cd $(UI_DIR) && npm install --no-audit --no-fund && npm run build
+
+# 前端开发模式，需同时运行 go run . -l :9876
+ui-dev:
+	@cd $(UI_DIR) && npm run dev
+
+build: ui-build $(DIR_SRC)/main.go
 	@$(GO) build $(GO_FLAGS) -o $(BIN) $(DIR_SRC)
 
 build_docker_image:

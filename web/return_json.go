@@ -19,6 +19,7 @@ func returnError(w http.ResponseWriter, msg string) {
 	result.Code = http.StatusInternalServerError
 	result.Msg = msg
 
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(result)
 }
 
@@ -30,5 +31,6 @@ func returnOK(w http.ResponseWriter, msg string, data interface{}) {
 	result.Msg = msg
 	result.Data = data
 
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(result)
 }

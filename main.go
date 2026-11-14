@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/jeessy2/ddns-go/v6/cert"
 	"github.com/jeessy2/ddns-go/v6/config"
 	"github.com/jeessy2/ddns-go/v6/dns"
 	"github.com/jeessy2/ddns-go/v6/util"
@@ -32,7 +33,7 @@ var versionFlag = flag.Bool("v", false, "ddns-go version")
 var updateFlag = flag.Bool("u", false, "Upgrade ddns-go to the latest version")
 
 // 监听地址
-var listen = flag.String("l", ":9876", "Listen address")
+var listen = flag.String("l", ":19876", "Listen address")
 
 // 更新频率(秒)
 var every = flag.Int("f", 300, "Update frequency(seconds)")
@@ -60,9 +61,6 @@ var newPassword = flag.String("resetPassword", "", "Reset password to the one en
 
 // 后台运行
 var daemonize = flag.Bool("d", false, "Run in background (daemon/detached)")
-
-//go:embed static
-var staticEmbeddedFiles embed.FS
 
 //go:embed favicon.ico
 var faviconEmbeddedFile embed.FS
@@ -178,11 +176,10 @@ func run() {
 	util.WaitInternet(dns.Addresses)
 
 	// 定时运行
-	dns.RunTimer(time.Duration(*every) * time.Second)
-}
+	// 证书自动申请/续期
+	go cert.RunTimer(cert.AutoCheckInterval)
 
-func staticFsFunc(writer http.ResponseWriter, request *http.Request) {
-	http.FileServer(http.FS(staticEmbeddedFiles)).ServeHTTP(writer, request)
+	dns.RunTimer(time.Duration(*every) * time.Second)
 }
 
 func faviconFsFunc(writer http.ResponseWriter, request *http.Request) {
@@ -190,19 +187,28 @@ func faviconFsFunc(writer http.ResponseWriter, request *http.Request) {
 }
 
 func runWebServer() error {
-	// 启动静态文件服务
-	http.HandleFunc("/static/", web.AuthAssert(staticFsFunc))
+	// Vue 构建产物与图标
 	http.HandleFunc("/favicon.ico", web.AuthAssert(faviconFsFunc))
-	http.HandleFunc("/login", web.AuthAssert(web.Login))
+	http.HandleFunc("/assets/", web.AuthAssert(web.UIAssets))
+	http.HandleFunc("/login", web.AuthAssert(web.UIIndex))
 	http.HandleFunc("/loginFunc", web.AuthAssert(web.LoginFunc))
 
-	http.HandleFunc("/", web.Auth(web.Writing))
-	http.HandleFunc("/save", web.Auth(web.Save))
-	http.HandleFunc("/setLang", web.Auth(web.SetLang))
-	http.HandleFunc("/logs", web.Auth(web.Logs))
-	http.HandleFunc("/clearLog", web.Auth(web.ClearLog))
-	http.HandleFunc("/webhookTest", web.Auth(web.WebhookTest))
-	http.HandleFunc("/logout", web.Auth(web.Logout))
+	// 配置与证书 API
+	http.HandleFunc("/api/config", web.AuthAPI(web.ConfigAPI))
+	http.HandleFunc("/api/cert/list", web.AuthAPI(web.CertList))
+	http.HandleFunc("/api/cert/issue", web.AuthAPI(web.CertIssue))
+	http.HandleFunc("/api/cert/download", web.AuthAPI(web.CertDownload))
+	http.HandleFunc("/api/cert/content", web.AuthAPI(web.CertContent))
+
+	http.HandleFunc("/save", web.AuthAPI(web.Save))
+	http.HandleFunc("/setLang", web.AuthAPI(web.SetLang))
+	http.HandleFunc("/logs", web.AuthAPI(web.Logs))
+	http.HandleFunc("/clearLog", web.AuthAPI(web.ClearLog))
+	http.HandleFunc("/webhookTest", web.AuthAPI(web.WebhookTest))
+	http.HandleFunc("/logout", web.AuthAssert(web.Logout))
+
+	// 前端单页应用（hash 路由）
+	http.HandleFunc("/", web.AuthAssert(web.UIIndex))
 
 	util.Log("监听 %s", *listen)
 
@@ -279,9 +285,9 @@ func getService() service.Service {
 	}
 
 	svcConfig := &service.Config{
-		Name:         "ddns-go",
-		DisplayName:  "ddns-go",
-		Description:  "Simple and easy to use DDNS. Automatically update domain name resolution to public IP (Support Aliyun, Tencent Cloud, Dnspod, Cloudflare, Callback, Huawei Cloud, Baidu Cloud, Porkbun, GoDaddy...)",
+		Name:         "ddns-go-acme",
+		DisplayName:  "ddns-go-acme",
+		Description:  "DDNS with ACME SSL certificates. Automatically update domain name resolution to public IP, and issue/renew SSL certificates via ACME DNS-01 (Support Aliyun, Tencent Cloud, Dnspod, Cloudflare, Callback, Huawei Cloud, Baidu Cloud, Porkbun, GoDaddy...)",
 		Arguments:    []string{"-l", *listen, "-f", strconv.Itoa(*every), "-cacheTimes", strconv.Itoa(*ipCacheTimes), "-c", *configFilePath},
 		Dependencies: depends,
 		Option:       options,

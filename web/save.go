@@ -2,9 +2,11 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/jeessy2/ddns-go/v6/cert"
 	"github.com/jeessy2/ddns-go/v6/config"
 	"github.com/jeessy2/ddns-go/v6/dns"
 	"github.com/jeessy2/ddns-go/v6/util"
@@ -28,14 +30,15 @@ func checkAndSave(request *http.Request) string {
 
 	// 从请求中读取 JSON 数据
 	var data struct {
-		Username           string       `json:"Username"`
-		Password           string       `json:"Password"`
-		Lang               string       `json:"Lang"`
-		NotAllowWanAccess  bool         `json:"NotAllowWanAccess"`
-		WebhookURL         string       `json:"WebhookURL"`
-		WebhookRequestBody string       `json:"WebhookRequestBody"`
-		WebhookHeaders     string       `json:"WebhookHeaders"`
-		DnsConf            []dnsConf4JS `json:"DnsConf"`
+		Username           string              `json:"Username"`
+		Password           string              `json:"Password"`
+		Lang               string              `json:"Lang"`
+		NotAllowWanAccess  bool                `json:"NotAllowWanAccess"`
+		WebhookURL         string              `json:"WebhookURL"`
+		WebhookRequestBody string              `json:"WebhookRequestBody"`
+		WebhookHeaders     string              `json:"WebhookHeaders"`
+		DnsConf            []dnsConf4JS        `json:"DnsConf"`
+		CertConf           []config.CertConfig `json:"CertConf"`
 	}
 
 	// 解析请求中的 JSON 数据
@@ -120,6 +123,7 @@ func checkAndSave(request *http.Request) string {
 		dnsConfArray = append(dnsConfArray, dnsConf)
 	}
 	conf.DnsConf = dnsConfArray
+	conf.CertConf = normalizeCertConf(data.CertConf)
 
 	// 保存到用户目录
 	err = conf.SaveConfig()
@@ -127,10 +131,58 @@ func checkAndSave(request *http.Request) string {
 	// 只运行一次
 	util.ForceCompareGlobal = true
 	go dns.RunOnce()
+	// 新启用或修改过的证书立即检查一次
+	go cert.RunOnce()
 
 	// 回写错误信息
 	if err != nil {
 		return err.Error()
 	}
 	return "ok"
+}
+
+// normalizeCertConf 清理前端提交的证书配置
+func normalizeCertConf(certConf []config.CertConfig) []config.CertConfig {
+	result := make([]config.CertConfig, 0, len(certConf))
+	usedNames := map[string]bool{}
+	for _, c := range certConf {
+		c.Name = strings.TrimSpace(c.Name)
+		c.Email = strings.TrimSpace(c.Email)
+		c.CA = strings.TrimSpace(c.CA)
+		c.KeyType = strings.TrimSpace(c.KeyType)
+		c.CertDir = strings.TrimSpace(c.CertDir)
+		if c.CA == "" {
+			c.CA = "letsencrypt"
+		}
+		if c.KeyType == "" {
+			c.KeyType = "ec256"
+		}
+		if c.RenewBefore <= 0 {
+			c.RenewBefore = config.DefaultCertRenewBefore
+		}
+
+		domains := make([]string, 0, len(c.Domains))
+		for _, d := range c.Domains {
+			d = strings.TrimSpace(d)
+			if d != "" {
+				domains = append(domains, d)
+			}
+		}
+		c.Domains = domains
+		if len(c.Domains) == 0 {
+			continue
+		}
+		if c.Name == "" {
+			c.Name = strings.Join(c.Domains, ",")
+		}
+
+		name := c.Name
+		for i := 2; usedNames[name]; i++ {
+			name = fmt.Sprintf("%s-%d", c.Name, i)
+		}
+		c.Name = name
+		usedNames[name] = true
+		result = append(result, c)
+	}
+	return result
 }

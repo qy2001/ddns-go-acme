@@ -1,19 +1,11 @@
 package web
 
 import (
-	"embed"
 	"encoding/json"
-	"fmt"
-	"html/template"
-	"net/http"
-	"os"
 	"strings"
 
 	"github.com/jeessy2/ddns-go/v6/config"
 )
-
-//go:embed writing.html
-var writingEmbedFile embed.FS
 
 const VersionEnv = "DDNS_GO_VERSION"
 
@@ -41,64 +33,12 @@ type dnsConf4JS struct {
 	HttpInterface    string
 }
 
-// Writing 填写信息
-func Writing(writer http.ResponseWriter, request *http.Request) {
-	tmpl, err := template.ParseFS(writingEmbedFile, "writing.html")
-	if err != nil {
-		fmt.Println("Error happened..")
-		fmt.Println(err)
-		return
-	}
-
-	conf, err := config.GetConfigCached()
-	// 默认禁止公网访问
-	if err != nil {
-		conf.NotAllowWanAccess = true
-	}
-
-	ipv4, ipv6, _ := config.GetNetInterface()
-
-	// 获取所有网卡（去重合并IPv4和IPv6网卡名称）
-	allIfaceNames := map[string]bool{}
-	for _, iface := range ipv4 {
-		allIfaceNames[iface.Name] = true
-	}
-	for _, iface := range ipv6 {
-		allIfaceNames[iface.Name] = true
-	}
-	allInterfaces := []config.NetInterface{}
-	for name := range allIfaceNames {
-		allInterfaces = append(allInterfaces, config.NetInterface{Name: name})
-	}
-
-	err = tmpl.Execute(writer, struct {
-		DnsConf           template.JS
-		NotAllowWanAccess bool
-		Username          string
-		Lang              string
-		config.Webhook
-		Version       string
-		Ipv4          []config.NetInterface
-		Ipv6          []config.NetInterface
-		AllInterfaces []config.NetInterface
-	}{
-		DnsConf:           template.JS(getDnsConfStr(conf.DnsConf)),
-		NotAllowWanAccess: conf.NotAllowWanAccess,
-		Username:          conf.User.Username,
-		Lang:              conf.Lang,
-		Webhook:           conf.Webhook,
-		Version:           os.Getenv(VersionEnv),
-		Ipv4:              ipv4,
-		Ipv6:              ipv6,
-		AllInterfaces:     allInterfaces,
-	})
-	if err != nil {
-		fmt.Println("Error happened..")
-		fmt.Println(err)
-	}
+func getDnsConfStr(dnsConf []config.DnsConfig) string {
+	byt, _ := json.Marshal(getDnsConf4JS(dnsConf))
+	return string(byt)
 }
 
-func getDnsConfStr(dnsConf []config.DnsConfig) string {
+func getDnsConf4JS(dnsConf []config.DnsConfig) []dnsConf4JS {
 	dnsConfArray := []dnsConf4JS{}
 	for _, conf := range dnsConf {
 		// 已存在配置文件，隐藏真实的ID、Secret
@@ -126,8 +66,7 @@ func getDnsConfStr(dnsConf []config.DnsConfig) string {
 			HttpInterface:    conf.HttpInterface,
 		})
 	}
-	byt, _ := json.Marshal(dnsConfArray)
-	return string(byt)
+	return dnsConfArray
 }
 
 // 显示的数量

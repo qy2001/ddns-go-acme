@@ -1,0 +1,112 @@
+:root {
+  --ddns-primary: #3b82f6;
+  --ddns-bg: #f5f7fb;
+  --ddns-card-radius: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--ddns-bg);
+  color: #1f2937;
+}
+
+.page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px 24px 40px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 650;
+  margin: 0;
+}
+
+.page-desc {
+  color: #6b7280;
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+
+.card {
+  border-radius: var(--ddns-card-radius);
+  border: 1px solid #eaeef5;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.04);
+}
+
+.card + .card {
+  margin-top: 16px;
+}
+
+.provider-help {
+  margin-left: 8px;
+  font-size: 12px;
+}
+
+.provider-help a {
+  color: var(--ddns-primary);
+  text-decoration: none;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 18px;
+}
+
+.form-grid .full {
+  grid-column: 1 / -1;
+}
+
+.hint {
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.log-view {
+  background: #0f172a;
+  color: #d1e0ff;
+  border-radius: 10px;
+  padding: 12px;
+  height: calc(100vh - 180px);
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+@media (max-width: 860px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page {
+    padding: 12px;
+  }
+}

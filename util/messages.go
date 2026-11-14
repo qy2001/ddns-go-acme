@@ -47,6 +47,11 @@ func init() {
 	message.SetString(language.English, "Webhook中的 RequestBody JSON 无效", "Webhook RequestBody JSON is invalid")
 	message.SetString(language.English, "Webhook调用成功! 返回数据：%s", "Successfully called Webhook! Response body: %s")
 	message.SetString(language.English, "Webhook调用失败! 异常信息：%s", "Failed to call Webhook! Exception: %s")
+
+	// cert
+	message.SetString(language.English, "开始申请证书, 域名: %s", "Issuing certificate for domains: %s")
+	message.SetString(language.English, "证书申请成功! 域名: %s, 有效期至: %s", "Certificate issued successfully! Domains: %s, valid until: %s")
+	message.SetString(language.English, "证书申请失败! 域名: %s, 异常信息: %s", "Failed to issue certificate! Domains: %s, error: %s")
 	message.SetString(language.English, "Webhook Header不正确: %s", "Webhook header is invalid: %s")
 	message.SetString(language.English, "请输入Webhook的URL", "Please enter the Webhook URL")
 

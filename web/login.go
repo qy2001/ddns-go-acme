@@ -1,10 +1,7 @@
 package web
 
 import (
-	"embed"
 	"encoding/json"
-	"fmt"
-	"html/template"
 	"net/http"
 	"net/url"
 	"time"
@@ -12,9 +9,6 @@ import (
 	"github.com/jeessy2/ddns-go/v6/config"
 	"github.com/jeessy2/ddns-go/v6/util"
 )
-
-//go:embed login.html
-var loginEmbedFile embed.FS
 
 // CookieName cookie name
 const cookieName = "token"
@@ -38,30 +32,6 @@ type loginDetect struct {
 }
 
 var ld = &loginDetect{ticker: time.NewTicker(5 * time.Minute)}
-
-// Login login page
-func Login(writer http.ResponseWriter, request *http.Request) {
-	tmpl, err := template.ParseFS(loginEmbedFile, "login.html")
-	if err != nil {
-		fmt.Println("Error happened..")
-		fmt.Println(err)
-		return
-	}
-
-	conf, _ := config.GetConfigCached()
-
-	err = tmpl.Execute(writer, struct {
-		EmptyUser bool   // 未填写用户名和密码
-		Lang      string // 当前后端语言
-	}{
-		EmptyUser: conf.Username == "" && conf.Password == "",
-		Lang:      conf.Lang,
-	})
-	if err != nil {
-		fmt.Println("Error happened..")
-		fmt.Println(err)
-	}
-}
 
 // LoginFunc login func
 func LoginFunc(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +62,6 @@ func LoginFunc(w http.ResponseWriter, r *http.Request) {
 		returnError(w, util.LogStr("必须输入用户名/密码"))
 		return
 	}
-
 
 	// 初始化用户名密码
 	if conf.Username == "" && conf.Password == "" {
